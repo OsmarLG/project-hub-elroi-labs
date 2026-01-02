@@ -15,12 +15,26 @@ export interface NavGroup {
     items: NavItem[];
 }
 
-export interface NavItem {
-    title: string;
-    href: NonNullable<InertiaLinkProps['href']>;
-    icon?: LucideIcon | null;
-    isActive?: boolean;
-}
+/**
+ * Un NavItem puede ser:
+ * 1) Link: tiene href
+ * 2) Group: tiene children (sin href)
+ */
+export type NavItem =
+    | {
+        title: string;
+        href: NonNullable<InertiaLinkProps['href']>;
+        icon?: LucideIcon | null;
+        isActive?: boolean;
+        children?: never;
+    }
+    | {
+        title: string;
+        href?: never;
+        icon?: LucideIcon | null;
+        isActive?: boolean;
+        children: NavItem[];
+    };
 
 export interface SharedData {
     name: string;

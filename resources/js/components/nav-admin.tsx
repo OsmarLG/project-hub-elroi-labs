@@ -21,12 +21,12 @@ function isGroup(item: NavItem): item is Extract<NavItem, { children: NavItem[] 
   return "children" in item
 }
 
-export function NavMain({ items = [] }: { items: NavItem[] }) {
+export function NavAdmin({ items = [] }: { items: NavItem[] }) {
   const page = usePage()
 
   return (
     <SidebarGroup className="px-2 py-0">
-      <SidebarGroupLabel>Plattform</SidebarGroupLabel>
+      <SidebarGroupLabel>Admin</SidebarGroupLabel>
 
       <SidebarMenu>
         {items.map((item) => {
@@ -51,7 +51,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                   <CollapsibleContent className="transition-all duration-200 ease-in-out">
                     <SidebarMenuSub>
                       {item.children.map((child) => {
-                        if ("children" in child) return null // por si anidas más niveles
+                        if ("children" in child) return null
                         const active = page.url.startsWith(resolveUrl(child.href))
 
                         return (
