@@ -172,21 +172,17 @@ export function NoteList({
 
                   <div className="flex items-center gap-1">
                     <Button
-                      asChild
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        goView(n.id)
+                      }}
                       title="View note"
                     >
-                      <a
-                        href={`/notes/${n.id}`}
-                        // target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </a>
+                      <Eye className="h-4 w-4" />
                     </Button>
 
                     <Button
