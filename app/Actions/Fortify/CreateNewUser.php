@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
+use Illuminate\Support\Facades\Auth;
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -42,6 +43,8 @@ class CreateNewUser implements CreatesNewUsers
         ]);
 
         $user->assignRole('member');
+
+        Auth::login($user);
 
         return $user;
     }
