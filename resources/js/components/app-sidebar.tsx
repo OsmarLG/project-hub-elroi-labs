@@ -17,6 +17,15 @@ import { Link } from '@inertiajs/react';
 import { BookOpen, Folder, KeyRound, LayoutGrid, ShieldCheck, UserCog, Users, Notebook, NotebookText, Shield } from 'lucide-react';
 import AppLogo from './app-logo';
 import { usePage } from '@inertiajs/react';
+import { filterNavItems } from "@/utils/filter-nav-items";
+
+type PageProps = {
+    auth: {
+        user: any | null;
+        permissions: string[];
+        roles: string[];
+    };
+};
 
 const mainNavItems: NavItem[] = [
     {
@@ -27,45 +36,46 @@ const mainNavItems: NavItem[] = [
     {
         title: "Notebook",
         icon: Notebook,
-        children: [
-            {
-                title: "Notes",
-                href: "/notes",
-                icon: NotebookText,
-            },
-        ],
+        href: "/notes",
+        can: "notes.view",
+    },
+    {
+        title: "My Files",
+        href: "/files",
+        icon: Folder,
+        can: "files.view",
     },
 ]
+
 
 const adminNavItems: NavItem[] = [
     {
         title: "User Management",
         icon: UserCog,
-        children: [
-            {
-                title: "Users",
-                href: "/admin/users",
-                icon: Users,
-            },
-        ],
+        href: "/admin/users",
+        can: "users.view",
     },
     {
         title: "Security",
         icon: ShieldCheck,
+        href: "/admin/roles",        // ✅
         children: [
             {
                 title: "Roles",
                 href: "/admin/roles",
                 icon: Shield,
+                can: "roles.manage",
             },
             {
                 title: "Permissions",
-                href: "/admin/permissions",
+                href: "/admin/roles/permissions",
                 icon: KeyRound,
+                can: "permissions.manage",
             },
         ],
     },
 ]
+
 
 const footerNavItems: NavItem[] = [
 
@@ -85,8 +95,11 @@ const adminFooterNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { auth } = usePage().props as any;
-    const isAdmin = auth?.user?.id === 1;
+    const { auth } = usePage<PageProps>().props;
+    const permissions = auth.permissions ?? [];
+
+    const filteredMainNav = filterNavItems(mainNavItems, permissions);
+    const filteredAdminNav = filterNavItems(adminNavItems, permissions);
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -103,17 +116,14 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
-                {isAdmin && (
-                    <NavAdmin items={adminNavItems} />
-                )}
+                <NavMain items={filteredMainNav} />
+
+                {(auth.roles.includes("master") || auth.roles.includes("admin")) && <NavAdmin items={filteredAdminNav} />}
             </SidebarContent>
 
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
-                {isAdmin && (
-                    <NavFooter items={adminFooterNavItems} />
-                )}
+                {(auth.roles.includes("master") || auth.roles.includes("admin")) && <NavFooter items={adminFooterNavItems} />}
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

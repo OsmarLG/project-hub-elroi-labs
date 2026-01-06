@@ -11,6 +11,8 @@ use App\Models\Note;
 use App\Services\Notes\NotesService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 
 class NoteController extends Controller
 {
@@ -35,6 +37,27 @@ class NoteController extends Controller
                 'folder_id' => $filters['folder_id'],
             ],
         ]);
+    }
+
+    public function show(Note $note)
+    {
+        return Inertia::render('notes/note', [
+            'note' => new NoteResource($note),
+            'canEdit' => request()->user()->can('notes.update', $note),
+        ]);
+    }
+
+    public function downloadPdf(Note $note)
+    {
+        $html = view('notes.pdf', [
+            'note' => $note,
+        ])->render();
+
+        return Pdf::loadHTML($html)
+            ->setPaper('a4')
+            ->download(
+                Str::slug($note->title ?: 'note') . '.pdf'
+            );
     }
 
     public function create(Request $request)

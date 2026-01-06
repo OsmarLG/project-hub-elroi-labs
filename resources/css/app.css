@@ -290,3 +290,18 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Fix listas para @uiw/react-md-editor */
+.wmde-markdown ul {
+    list-style: disc !important;
+    padding-left: 1.25rem !important;
+}
+
+.wmde-markdown ol {
+    list-style: decimal !important;
+    padding-left: 1.25rem !important;
+}
+
+.wmde-markdown li {
+    margin-left: 0 !important;
+}

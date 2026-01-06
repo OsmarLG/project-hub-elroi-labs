@@ -15,7 +15,7 @@ class UserIndexRequest extends FormRequest
     {
         return [
             'search'   => ['nullable', 'string', 'max:200'],
-            'sort'     => ['nullable', 'string', 'in:id,name,email,created_at,updated_at'],
+            'sort'     => ['nullable', 'string', 'in:id,name,username,email,created_at,updated_at'],
             'dir'      => ['nullable', 'string', 'in:asc,desc'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page'     => ['nullable', 'integer', 'min:1'],

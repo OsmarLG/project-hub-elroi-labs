@@ -12,14 +12,12 @@ use App\Http\Resources\Admin\Users\UserResource;
 use App\Services\Admin\UserService;
 use Inertia\Inertia;
 use App\Models\User;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class UserController extends Controller
 {
-    public function __construct(
-        protected UserService $userService
-    ) {
-        abort_unless(auth()->id() === 1, 403);
-    }
+    public function __construct(protected UserService $userService) {}
 
     /**
      * Display a listing of the resource.
@@ -50,7 +48,10 @@ class UserController extends Controller
      */
     public function create()
     {
-        return Inertia::render('admin/users/create');
+        return Inertia::render('admin/users/create', [
+            'roles' => Role::query()->select('id', 'name')->orderBy('name')->get(),
+            'permissions' => Permission::query()->select('id', 'name')->orderBy('name')->get(),
+        ]);
     }
 
     /**
@@ -80,8 +81,14 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        $user->load(['roles', 'permissions']); // direct perms
+
         return Inertia::render('admin/users/edit', [
             'user' => (new UserResource($user))->resolve(),
+            'roles' => Role::query()->select('id', 'name')->orderBy('name')->get(),
+            'permissions' => Permission::query()->select('id', 'name')->orderBy('name')->get(),
+            'userRoleIds' => $user->roles->pluck('id')->values(),
+            'userPermissionIds' => $user->permissions->pluck('id')->values(),
         ]);
     }
 

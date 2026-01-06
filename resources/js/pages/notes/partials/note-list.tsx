@@ -6,13 +6,16 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Pencil } from "lucide-react"
+import { Plus, Trash2, Pencil, Eye } from "lucide-react"
+import { router } from "@inertiajs/react"
+import { Link } from "@inertiajs/react"
 
 type Props = {
   notes: Note[]
   folders?: Folder[]
   activeNoteId: number | null
   onSelect: (id: number) => void
+  onView: (id: number) => void
   onEdit: (id: number) => void
   onCreate: () => void
   onDelete: (id: number) => void
@@ -43,6 +46,7 @@ export function NoteList({
   folders = [],
   activeNoteId,
   onSelect,
+  onView,
   onEdit,
   onCreate,
   onDelete,
@@ -70,6 +74,15 @@ export function NoteList({
 
   const allChecked = filtered.length > 0 && filtered.every((n) => selected[n.id])
   const someChecked = filtered.some((n) => selected[n.id]) && !allChecked
+
+  // ✅ Acción default para "ver": ir a /notes/{id}
+  const goView = (id: number) => {
+    // si quieres manejarlo desde el padre, úsalo
+    if (onView) return onView(id)
+
+    // si no, navega directo
+    router.visit(`/notes/${id}`)
+  }
 
   return (
     <div className="space-y-3">
@@ -158,6 +171,24 @@ export function NoteList({
                   </div>
 
                   <div className="flex items-center gap-1">
+                    <Button
+                      asChild
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="View note"
+                    >
+                      <a
+                        href={`/notes/${n.id}`}
+                        // target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </a>
+                    </Button>
+
                     <Button
                       type="button"
                       variant="ghost"

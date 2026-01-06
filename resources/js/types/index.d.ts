@@ -20,21 +20,18 @@ export interface NavGroup {
  * 1) Link: tiene href
  * 2) Group: tiene children (sin href)
  */
-export type NavItem =
-    | {
-        title: string;
-        href: NonNullable<InertiaLinkProps['href']>;
-        icon?: LucideIcon | null;
-        isActive?: boolean;
-        children?: never;
-    }
-    | {
-        title: string;
-        href?: never;
-        icon?: LucideIcon | null;
-        isActive?: boolean;
-        children: NavItem[];
-    };
+export type NavItem = {
+    title: string
+    icon?: LucideIcon | null
+    can?: string | string[]
+    isActive?: boolean
+
+    // ✅ opcional: si lo pones, al hacer click navega (aunque tenga children)
+    href?: NonNullable<InertiaLinkProps["href"]>
+
+    // ✅ opcional: permite niveles infinitos
+    children?: NavItem[]
+}
 
 export interface SharedData {
     name: string;

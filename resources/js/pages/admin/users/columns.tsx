@@ -1,17 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { usePage } from "@inertiajs/react"
-import { router } from "@inertiajs/react"
+import { usePage, router } from "@inertiajs/react"
 import { toast } from "sonner"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal } from "lucide-react"
-import { CheckCircle2, XCircle } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { MoreHorizontal, CheckCircle2, XCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,36 +18,43 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
+type PageProps = {
+  auth: {
+    user: any | null
+    permissions: string[]
+    roles: string[]
+  }
+}
 
 export interface UserRow {
   id: number
   name: string
+  username: string
   email: string
   created_at: string
   updated_at: string
   email_verified_at: string | null
+  roles?: Array<{ id: number; name: string }>
+  permissions?: Array<{ id: number; name: string }> // direct permissions
 }
+
+const PROTECTED_USER_IDS = new Set([1]) // super admin
 
 export const userColumns: ColumnDef<UserRow>[] = [
   {
     id: "select",
     header: ({ table }) => {
       const rows = table.getRowModel().rows
+      const eligibleRows = rows.filter((row) => !PROTECTED_USER_IDS.has((row.original as any).id))
 
-      // Solo filas elegibles (no protegidas)
-      const eligibleRows = rows.filter((row) => (row.original as any).id !== 1)
-
-      const allEligibleSelected =
-        eligibleRows.length > 0 && eligibleRows.every((row) => row.getIsSelected())
-
-      const someEligibleSelected =
-        eligibleRows.some((row) => row.getIsSelected())
+      const allEligibleSelected = eligibleRows.length > 0 && eligibleRows.every((row) => row.getIsSelected())
+      const someEligibleSelected = eligibleRows.some((row) => row.getIsSelected())
 
       return (
         <Checkbox
-          checked={
-            allEligibleSelected || (someEligibleSelected && "indeterminate")
-          }
+          checked={allEligibleSelected || (someEligibleSelected && "indeterminate")}
           onCheckedChange={(value) => {
             const checked = !!value
             eligibleRows.forEach((row) => row.toggleSelected(checked))
@@ -59,8 +64,8 @@ export const userColumns: ColumnDef<UserRow>[] = [
       )
     },
     cell: ({ row }) => {
-      const user = row.original as any
-      const isProtected = user.id === 1
+      const user = row.original
+      const isProtected = PROTECTED_USER_IDS.has(user.id)
 
       return (
         <Checkbox
@@ -74,33 +79,83 @@ export const userColumns: ColumnDef<UserRow>[] = [
     enableSorting: false,
     enableHiding: false,
   },
+
   {
     accessorKey: "id",
     header: "ID",
     cell: ({ row }) => <div className="tabular-nums">{row.getValue("id")}</div>,
   },
+
   {
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
   },
+
+  {
+    accessorKey: "username",
+    header: "Username",
+    cell: ({ row }) => <div className="font-medium">{row.getValue("username")}</div>,
+  },
+
   {
     accessorKey: "email",
     header: "Email",
-    cell: ({ row }) => (
-      <div className="lowercase truncate max-w-[360px]">{row.getValue("email")}</div>
-    ),
+    cell: ({ row }) => <div className="lowercase truncate max-w-[360px]">{row.getValue("email")}</div>,
   },
+
+  {
+    accessorKey: "roles",
+    header: "Roles",
+    cell: ({ row }) => {
+      const roles = (row.getValue("roles") as any[]) ?? []
+      if (!roles.length) return <span className="text-sm text-muted-foreground">—</span>
+      return (
+        <div className="flex flex-wrap gap-1">
+          {roles.map((r) => (
+            <Badge key={r.id} variant="secondary">
+              {r.name}
+            </Badge>
+          ))}
+        </div>
+      )
+    },
+  },
+
+  {
+    accessorKey: "permissions",
+    header: "Direct perms",
+    cell: ({ row }) => {
+      const perms = (row.getValue("permissions") as any[]) ?? []
+      if (!perms.length) return <span className="text-sm text-muted-foreground">—</span>
+
+      return (
+        <div className="flex flex-wrap gap-1 max-w-[360px]">
+          {perms.slice(0, 6).map((p) => (
+            <Badge key={p.id} variant="outline">
+              {p.name}
+            </Badge>
+          ))}
+          {perms.length > 6 && (
+            <Badge variant="outline">+{perms.length - 6}</Badge>
+          )}
+        </div>
+      )
+    },
+  },
+
   {
     accessorKey: "created_at",
     header: "Created At",
     cell: ({ row }) => <div>{row.getValue("created_at")}</div>,
   },
+
   {
     accessorKey: "updated_at",
     header: "Updated At",
     cell: ({ row }) => <div>{row.getValue("updated_at")}</div>,
   },
+
   {
     accessorKey: "email_verified_at",
     header: "Verified",
@@ -129,17 +184,25 @@ export const userColumns: ColumnDef<UserRow>[] = [
           </Tooltip>
         </TooltipProvider>
       )
-    }
+    },
   },
+
   {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
       const user = row.original
-      const { auth } = usePage().props as any
+      const { auth } = usePage<PageProps>().props
+      const permissions = auth.permissions ?? []
       const currentUserId = auth?.user?.id
 
-      const isProtected = user.id === 1 || user.id === currentUserId
+      const isProtected = PROTECTED_USER_IDS.has(user.id)
+      const isSelf = currentUserId === user.id
+
+      const canView = permissions.includes("users.view")
+      const canEdit = permissions.includes("users.update") && !isProtected
+      const canDelete = permissions.includes("users.delete") && !isProtected && !isSelf
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -152,46 +215,32 @@ export const userColumns: ColumnDef<UserRow>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(user.email)}
-            >
-              Copy User Email
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem onClick={() => router.visit(`/admin/users/${user.id}`)}>
-              View
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem onClick={() => router.visit(`/admin/users/${user.id}/edit`)}>
-              Edit
-            </DropdownMenuItem>
-
-            {!user.email_verified_at && (
+            {canView && (
               <>
+                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(user.email)}>
+                  Copy User Email
+                </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem
-                  onClick={() => {
-                    router.patch(`/admin/users/${user.id}/verify`, {}, {
-                      preserveScroll: true,
-                      onSuccess: () => toast.success("User marked as verified."),
-                      onError: () => toast.error("Failed to verify user."),
-                    })
-                  }}
-                >
-                  Mark as Verified
+                <DropdownMenuItem onClick={() => router.visit(`/admin/users/${user.id}`)}>
+                  View
                 </DropdownMenuItem>
               </>
             )}
 
-            {!isProtected && (
+            {canEdit && (
               <>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.visit(`/admin/users/${user.id}/edit`)}>
+                  Edit
+                </DropdownMenuItem>
+              </>
+            )}
 
+            {canDelete && (
+              <>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-red-600 focus:text-red-600"
                   onClick={() => {
@@ -199,12 +248,8 @@ export const userColumns: ColumnDef<UserRow>[] = [
 
                     router.delete(`/admin/users/${user.id}`, {
                       preserveScroll: true,
-                      onSuccess: () => {
-                        toast.success("User deleted successfully.")
-                      },
-                      onError: () => {
-                        toast.error("Failed to delete user.")
-                      }
+                      onSuccess: () => toast.success("User deleted successfully."),
+                      onError: () => toast.error("Failed to delete user."),
                     })
                   }}
                 >
@@ -213,6 +258,14 @@ export const userColumns: ColumnDef<UserRow>[] = [
               </>
             )}
 
+            {!canEdit && !canDelete && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled className="opacity-60">
+                  No actions available
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )

@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class UserService
 {
@@ -16,7 +18,7 @@ class UserService
         $dir     = $filters['dir'] ?? 'desc';
         $perPage = (int) ($filters['per_page'] ?? 10);
 
-        $allowedSorts = ['id', 'name', 'email', 'created_at', 'updated_at'];
+        $allowedSorts = ['id', 'name', 'username', 'email', 'created_at', 'updated_at'];
         if (!in_array($sort, $allowedSorts, true)) {
             $sort = 'id';
         }
@@ -30,10 +32,12 @@ class UserService
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%");
                 });
             })
             ->orderBy($sort, $dir)
+            ->with(['roles.permissions', 'permissions'])
             ->paginate($perPage)
             ->withQueryString();
     }
@@ -47,6 +51,7 @@ class UserService
     {
         $user = User::create([
             'name' => $data['name'],
+            'username' => $data['username'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
@@ -55,12 +60,29 @@ class UserService
             $user->markEmailAsVerified();
         }
 
-        return $user;
+        // ✅ Roles
+        $roleIds = array_values(array_unique(array_map('intval', $data['roles'] ?? [])));
+        if ($roleIds) {
+            $roleNames = Role::whereIn('id', $roleIds)->pluck('name')->all();
+            $user->syncRoles($roleNames);
+        }
+
+        // ✅ Permisos directos (extras del usuario)
+        $permIds = array_values(array_unique(array_map('intval', $data['permissions'] ?? [])));
+        if ($permIds) {
+            $permNames = Permission::whereIn('id', $permIds)->pluck('name')->all();
+            $user->syncPermissions($permNames);
+        } else {
+            $user->syncPermissions([]); // si quieres que al crear quede limpio
+        }
+
+        return $user->refresh()->load(['roles.permissions', 'permissions']);
     }
 
     public function update(User $user, array $data): User
     {
         $user->name = $data['name'];
+        $user->username = $data['username'];
         $user->email = $data['email'];
 
         if (!empty($data['password'])) {
@@ -79,13 +101,27 @@ class UserService
 
         $user->save();
 
-        return $user->refresh();
+        // ✅ Roles
+        if (array_key_exists('roles', $data)) {
+            $roleIds = array_values(array_unique(array_map('intval', $data['roles'] ?? [])));
+            $roleNames = Role::whereIn('id', $roleIds)->pluck('name')->all();
+            $user->syncRoles($roleNames);
+        }
+
+        // ✅ Permisos directos
+        if (array_key_exists('permissions', $data)) {
+            $permIds = array_values(array_unique(array_map('intval', $data['permissions'] ?? [])));
+            $permNames = Permission::whereIn('id', $permIds)->pluck('name')->all();
+            $user->syncPermissions($permNames);
+        }
+
+        return $user->refresh()->load(['roles.permissions', 'permissions']);
     }
 
     public function delete(User $user): void
     {
         if ($user->id === 1) {
-            abort(403, 'No se puede eliminar el super admin.');
+            abort(403, 'No se puede eliminar el master.');
         }
 
         if (auth()->id() === $user->id) {

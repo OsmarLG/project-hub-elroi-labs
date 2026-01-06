@@ -17,9 +17,17 @@ class UserUpdateRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:120'],
+            'username' => ['required', 'string', 'max:60', 'unique:users,username,' . $userId],
             'email' => ['required', 'string', 'email', 'max:190', 'unique:users,email,' . $userId],
             'password' => ['nullable', 'string', 'min:8', 'max:72', 'confirmed'],
+
             'mark_as_verified' => ['nullable', 'boolean'],
+
+            'roles' => ['sometimes', 'array'],
+            'roles.*' => ['integer', 'exists:roles,id'],
+
+            'permissions' => ['sometimes', 'array'],
+            'permissions.*' => ['integer', 'exists:permissions,id'],
         ];
     }
 }

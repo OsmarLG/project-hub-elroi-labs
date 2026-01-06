@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Pencil, Trash2, Maximize2 } from "lucide-react"
 import type { Note } from "../types"
 import { NoteFullscreenDialog } from "./note-fullscreen-dialog"
+import { Link } from "@inertiajs/react"
+import { ExternalLink } from "lucide-react"
 
 import "@uiw/react-markdown-preview/markdown.css"
 
@@ -57,6 +59,13 @@ export function NoteViewer({ note, onEdit, onDelete }: Props) {
                         </Button>
                     </NoteFullscreenDialog>
 
+                    <Button asChild variant="outline">
+                        <Link href={`/notes/${note.id}`}>
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Open
+                        </Link>
+                    </Button>
+                    
                     <Button variant="outline" type="button" onClick={onEdit}>
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit
