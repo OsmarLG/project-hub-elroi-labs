@@ -67,6 +67,11 @@ export default function NoteShowPage({ note, canEdit }: PageProps) {
 
     setSaving(true)
 
+    // blur active element (keyboard on mobile)
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+
     router.put(
       `/notes/${n.id}`,
       {
@@ -79,6 +84,7 @@ export default function NoteShowPage({ note, canEdit }: PageProps) {
         onFinish: () => setSaving(false),
         onSuccess: () => {
           setIsEditing(false)
+          window.scrollTo(0, 0)
         },
       }
     )

@@ -262,6 +262,12 @@
     color: hsl(var(--foreground));
 }
 
+/* Ensure editor + fullscreen has solid background */
+.w-md-editor,
+.w-md-editor-fullscreen {
+    background-color: var(--background) !important;
+}
+
 .wmde-markdown code,
 .wmde-markdown pre {
     background: hsl(var(--muted));

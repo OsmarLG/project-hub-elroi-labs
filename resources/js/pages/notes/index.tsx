@@ -164,6 +164,11 @@ export default function NotesPage(props: PageProps) {
   const onSaveNote = (payload: { title: string; content: string; folder_id: number | null }) => {
     setSaving(true)
 
+    // blur active element (keyboard on mobile)
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+
     if (mode === "edit" && activeNote) {
       router.put(`/notes/${activeNote.id}`, payload, {
         preserveScroll: true,
